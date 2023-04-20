@@ -6,10 +6,10 @@ import (
 )
 
 func TestCache_Set(t *testing.T) {
-	cache := New[int]()
-	cache.Set("test", 100, time.Second)
+	cache := New()
+	cache.Set("test", "test", time.Second)
 	if val, ok := cache.items["test"]; ok {
-		if val.value != 100 {
+		if val.value != "test" {
 			t.Error("Item value incorrect")
 		}
 	} else {
@@ -18,7 +18,7 @@ func TestCache_Set(t *testing.T) {
 }
 
 func TestCache_Get(t *testing.T) {
-	cache := New[int]()
+	cache := New()
 	cache.Set("test", 100, time.Second)
 
 	val, err := cache.Get("test")
@@ -39,7 +39,7 @@ func TestCache_Get(t *testing.T) {
 }
 
 func TestCache_Delete(t *testing.T) {
-	cache := New[int]()
+	cache := New()
 	cache.Set("test", 100, time.Second)
 
 	err := cache.Delete("test")
@@ -49,7 +49,7 @@ func TestCache_Delete(t *testing.T) {
 }
 
 func TestCache_Cleaner(t *testing.T) {
-	cache := New[int]()
+	cache := New()
 	cache.Set("test-one", 100, time.Millisecond*500)
 	cache.Set("test-two", 100, time.Millisecond*1500)
 
