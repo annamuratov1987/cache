@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -50,19 +51,36 @@ func TestCache_Delete(t *testing.T) {
 
 func TestCache_Cleaner(t *testing.T) {
 	cache := New()
-	cache.Set("test-one", 100, time.Millisecond*500)
-	cache.Set("test-two", 100, time.Millisecond*1500)
+
+	for i := 1; i <= 10; i++ {
+		key := fmt.Sprintf("key_%d", i)
+		cache.Set(key, 100, time.Millisecond*500)
+	}
+
+	for i := 11; i <= 20; i++ {
+		key := fmt.Sprintf("key_%d", i)
+		cache.Set(key, 100, time.Millisecond*1500)
+	}
 
 	cache.StartCleaner(time.Second)
 
 	time.Sleep(time.Millisecond * 1100)
 
-	if _, ok := cache.items["test-one"]; ok {
-		t.Error("Item not cleaned in expiration time")
+	for i := 1; i <= 10; i++ {
+		key := fmt.Sprintf("key_%d", i)
+		cache.RLock()
+		if _, ok := cache.items[key]; ok {
+			t.Error("Item not cleaned in expiration time")
+		}
+		cache.RUnlock()
 	}
-
-	if _, ok := cache.items["test-two"]; !ok {
-		t.Error("Item cleaned before expiration time")
+	for i := 11; i <= 20; i++ {
+		key := fmt.Sprintf("key_%d", i)
+		cache.RLock()
+		if _, ok := cache.items[key]; !ok {
+			t.Error("Item cleaned before expiration time")
+		}
+		cache.RUnlock()
 	}
 
 	cache.StopCleaner()

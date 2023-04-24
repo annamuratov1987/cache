@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	DefaultExpiration = time.Minute * 60
+	DefaultExpiration      = time.Minute * 60
+	CleanerGoroutinesCount = 5
 )
 
 type cache struct {
@@ -61,10 +62,11 @@ func (c cache) Get(key string) (val interface{}, err error) {
 }
 
 func (c *cache) Delete(key string) error {
+	c.Lock()
+	defer c.Unlock()
+
 	if _, ok := c.items[key]; ok {
-		c.Lock()
 		delete(c.items, key)
-		c.Unlock()
 
 		return nil
 	}
@@ -72,14 +74,36 @@ func (c *cache) Delete(key string) error {
 	return errors.New("Item not found")
 }
 
-func (c *cache) clean() {
+func (c *cache) DeleteIsExpired(key string) error {
 	c.Lock()
 	defer c.Unlock()
 
-	for key, item := range c.items {
+	if item, ok := c.items[key]; ok {
 		if item.expireOn.Compare(time.Now()) < 1 {
 			delete(c.items, key)
+
+			return nil
 		}
+
+		return errors.New("Item not expired")
+	}
+
+	return errors.New("Item not found")
+}
+
+func (c *cache) clean() {
+	itemKeys := make(chan string, len(c.items))
+	for key := range c.items {
+		itemKeys <- key
+	}
+	close(itemKeys)
+
+	for i := 0; i < CleanerGoroutinesCount; i++ {
+		go func() {
+			for key := range itemKeys {
+				c.DeleteIsExpired(key)
+			}
+		}()
 	}
 }
 
