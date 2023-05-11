@@ -1,3 +1,3 @@
-module github.com/annamuratov1987/cache
+module cache
 
 go 1.18
